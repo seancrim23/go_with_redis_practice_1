@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,25 +12,28 @@ import (
 type App struct {
 	router http.Handler
 	rdb    *redis.Client
+	config Config
 }
 
-func New() *App {
+func New(config Config) *App {
 	app := &App{
-		router: loadRoutes(),
 		rdb: redis.NewClient(&redis.Options{
-			Addr:     "redis-16968.c89.us-east-1-3.ec2.redns.redis-cloud.com:16968",
-			Username: "default",
-			Password: os.Getenv("REDIS_PASS"),
+			Addr:     config.RedisAddress,
+			Username: config.RedisUsername,
+			Password: config.RedisPass,
 			DB:       0,
 		}),
+		config: config,
 	}
+
+	app.loadRoutes()
 
 	return app
 }
 
 func (a *App) Start(ctx context.Context) error {
 	server := &http.Server{
-		Addr:    ":3000",
+		Addr:    fmt.Sprintf(":%d", a.config.ServerPort),
 		Handler: a.router,
 	}
 
